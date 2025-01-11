@@ -14,7 +14,11 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.4",
+    "@sentry/react": "^7.41.0",
+    "@sentry/tracing": "^7.41.0",
     "@supabase/supabase-js": "^2.39.3",
+    "antd": "^5.23.0",
     "firebase": "^10.8.0",
     "lucide-react": "^0.344.0",
     "qrcode.react": "^3.1.0",
@@ -23,9 +27,7 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.22.2",
     "recharts": "^2.12.2",
-    "zod": "^3.22.4",
-    "@sentry/react": "^7.41.0",
-    "@sentry/tracing": "^7.41.0"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.1",
