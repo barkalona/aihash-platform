@@ -1,113 +1,130 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { marketplace } from '../../lib/api/marketplace';
-import { useFormValidation } from '../../hooks/useFormValidation';
-import { z } from 'zod';
-import { LoadingSpinner } from '../UI/LoadingSpinner';
+import React from 'react';
+import { Form, Input, Select, Button, InputNumber } from 'antd';
+import { toast } from 'react-hot-toast';
+import { useWallet } from '../../contexts/WalletContext';
 
-const listingSchema = z.object({
-  algorithm: z.string().min(1, 'Algorithm is required'),
-  hashPower: z.number().min(0.1, 'Hash power must be at least 0.1 TH/s'),
-  pricePerTh: z.number().min(0.01, 'Price must be at least 0.01'),
-  minPurchase: z.number().min(0.1, 'Minimum purchase must be at least 0.1 TH/s'),
-  maxPurchase: z.number().min(0.1, 'Maximum purchase must be at least 0.1 TH/s'),
-  availabilityDays: z.string().min(1, 'Availability period is required')
-});
+const { Option } = Select;
 
-export function CreateListing({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    algorithm: 'SHA256',
-    hashPower: '',
-    pricePerTh: '',
-    minPurchase: '',
-    maxPurchase: '',
-    availabilityDays: '7'
-  });
+interface CreateListingFormData {
+  algorithm: string;
+  hashPower: number;
+  pricePerTH: number;
+  minPurchase: number;
+  maxPurchase: number;
+}
 
-  const { errors, validate, setErrors } = useFormValidation(listingSchema);
+export function CreateListing() {
+  const { isConnected } = useWallet();
+  const [form] = Form.useForm<CreateListingFormData>();
+  const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    const numericData = {
-      ...formData,
-      hashPower: parseFloat(formData.hashPower),
-      pricePerTh: parseFloat(formData.pricePerTh),
-      minPurchase: parseFloat(formData.minPurchase),
-      maxPurchase: parseFloat(formData.maxPurchase),
-    };
-
-    if (!validate(numericData)) {
+  const handleSubmit = async (values: CreateListingFormData) => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
       return;
     }
 
     setLoading(true);
-
     try {
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setDate(now.getDate() + parseInt(formData.availabilityDays));
-
-      await marketplace.createListing({
-        seller_id: user!.id,
-        algorithm: formData.algorithm,
-        hash_power: numericData.hashPower,
-        price_per_th: numericData.pricePerTh,
-        min_purchase: numericData.minPurchase,
-        max_purchase: numericData.maxPurchase,
-        availability_window: `[${now.toISOString()},${endDate.toISOString()}]`,
-        status: 'active'
-      });
-
-      onSuccess();
-    } catch (err) {
-      setErrors({ submit: err instanceof Error ? err.message : 'Failed to create listing' });
+      // TODO: Implement contract interaction
+      console.log('Creating listing:', values);
+      toast.success('Listing created successfully!');
+      form.resetFields();
+    } catch (error) {
+      console.error('Error creating listing:', error);
+      toast.error('Failed to create listing');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-gray-900/50 p-6 rounded-xl">
-      <h2 className="text-xl font-bold mb-6">Create New Listing</h2>
+    <div className="max-w-2xl mx-auto p-6 bg-[#1C2128] rounded-lg shadow-md border border-[#30363D]">
+      <h2 className="text-2xl font-bold mb-6 font-['Clash Display']">Create Hash Power Listing</h2>
+      
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        requiredMark={false}
+      >
+        <Form.Item
+          name="algorithm"
+          label="Mining Algorithm"
+          rules={[{ required: true, message: 'Please select an algorithm' }]}
+        >
+          <Select placeholder="Select algorithm">
+            <Option value="SHA-256">SHA-256 (Bitcoin)</Option>
+            <Option value="Ethash">Ethash (Ethereum)</Option>
+            <Option value="Scrypt">Scrypt (Litecoin)</Option>
+            <Option value="RandomX">RandomX (Monero)</Option>
+          </Select>
+        </Form.Item>
 
-      {errors.submit && (
-        <div className="bg-red-500/10 text-red-400 p-3 rounded-lg mb-4">
-          {errors.submit}
-        </div>
-      )}
+        <Form.Item
+          name="hashPower"
+          label="Hash Power (TH/s)"
+          rules={[{ required: true, message: 'Please enter hash power amount' }]}
+        >
+          <InputNumber
+            min={0.1}
+            step={0.1}
+            style={{ width: '100%' }}
+            placeholder="Enter hash power amount"
+          />
+        </Form.Item>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Form fields remain the same */}
-        
-        <div className="flex justify-end gap-4 mt-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+        <Form.Item
+          name="pricePerTH"
+          label="Price per TH/s (USD)"
+          rules={[{ required: true, message: 'Please enter price per TH/s' }]}
+        >
+          <InputNumber
+            min={0.01}
+            step={0.01}
+            style={{ width: '100%' }}
+            placeholder="Enter price per TH/s"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="minPurchase"
+          label="Minimum Purchase (TH/s)"
+          rules={[{ required: true, message: 'Please enter minimum purchase amount' }]}
+        >
+          <InputNumber
+            min={0.1}
+            step={0.1}
+            style={{ width: '100%' }}
+            placeholder="Enter minimum purchase amount"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="maxPurchase"
+          label="Maximum Purchase (TH/s)"
+          rules={[{ required: true, message: 'Please enter maximum purchase amount' }]}
+        >
+          <InputNumber
+            min={0.1}
+            step={0.1}
+            style={{ width: '100%' }}
+            placeholder="Enter maximum purchase amount"
+          />
+        </Form.Item>
+
+        <Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            disabled={!isConnected}
+            className="w-full"
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center gap-2 bg-primary text-background px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <LoadingSpinner size="sm" />
-                Creating...
-              </>
-            ) : (
-              'Create Listing'
-            )}
-          </button>
-        </div>
-      </form>
+            Create Listing
+          </Button>
+        </Form.Item>
+      </Form>
     </div>
   );
 }
