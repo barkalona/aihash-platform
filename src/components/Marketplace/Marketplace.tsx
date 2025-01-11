@@ -22,6 +22,29 @@ interface PurchaseModalProps {
   onPurchase: (amount: number) => Promise<void>;
 }
 
+function generateMockListings(count: number): Listing[] {
+  const algorithms = ['SHA-256', 'Ethash', 'Scrypt', 'RandomX'];
+  const listings: Listing[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const algorithm = algorithms[Math.floor(Math.random() * algorithms.length)];
+    const hashPower = Math.floor(Math.random() * 900) + 100; // 100-1000 TH/s
+    const pricePerTH = Number((Math.random() * 80 + 20).toFixed(2)); // $20-100 per TH/s
+    
+    listings.push({
+      id: `listing-${i + 1}`,
+      algorithm,
+      hashPower,
+      pricePerTH,
+      minPurchase: Math.max(1, Math.floor(hashPower * 0.05)), // 5% of total
+      maxPurchase: Math.floor(hashPower * 0.8), // 80% of total
+      sellerAddress: `0x${Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+    });
+  }
+
+  return listings;
+}
+
 function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = React.useState(false);
@@ -62,7 +85,7 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
         },
       }}
       footer={[
-        <Button key="cancel" onClick={onClose}>
+        <Button key="cancel" onClick={onClose} className="bg-[#1C2128] border-[#30363D]">
           Cancel
         </Button>,
         <Button
@@ -70,6 +93,7 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
           type="primary"
           loading={loading}
           onClick={handleSubmit}
+          className="bg-green-500 hover:bg-green-600"
         >
           Confirm Purchase
         </Button>,
@@ -79,11 +103,11 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
         <div className="space-y-4">
           <div className="bg-[#0D1117] p-4 rounded-lg border border-[#30363D]">
             <div className="grid grid-cols-2 gap-2">
-              <div className="text-gray-600">Algorithm:</div>
+              <div className="text-gray-400">Algorithm:</div>
               <div className="font-medium">{listing.algorithm}</div>
-              <div className="text-gray-600">Price per TH/s:</div>
+              <div className="text-gray-400">Price per TH/s:</div>
               <div className="font-medium">${listing.pricePerTH.toFixed(2)}</div>
-              <div className="text-gray-600">Available Power:</div>
+              <div className="text-gray-400">Available Power:</div>
               <div className="font-medium">{listing.hashPower} TH/s</div>
             </div>
           </div>
@@ -115,6 +139,7 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
                 max={Math.min(listing.maxPurchase, listing.hashPower)}
                 step={0.1}
                 style={{ width: '100%' }}
+                className="bg-[#1C2128] border-[#30363D]"
               />
             </Form.Item>
           </Form>
@@ -127,6 +152,7 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
               </div>
             }
             type="info"
+            className="bg-[#1C2128] border-[#30363D]"
           />
         </div>
       )}
@@ -138,29 +164,9 @@ export function Marketplace() {
   const { isConnected } = useWallet();
   const [selectedListing, setSelectedListing] = React.useState<Listing | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = React.useState(false);
-  const [showCreateListing, setShowCreateListing] = React.useState(false);
 
-  // Mock data for development
-  const [listings] = React.useState<Listing[]>([
-    {
-      id: '1',
-      algorithm: 'SHA-256',
-      hashPower: 100,
-      pricePerTH: 50,
-      minPurchase: 1,
-      maxPurchase: 50,
-      sellerAddress: '0x1234...5678',
-    },
-    {
-      id: '2',
-      algorithm: 'Ethash',
-      hashPower: 75,
-      pricePerTH: 65,
-      minPurchase: 0.5,
-      maxPurchase: 30,
-      sellerAddress: '0x8765...4321',
-    },
-  ]);
+  // Generate 30 demo listings
+  const [listings] = React.useState<Listing[]>(() => generateMockListings(30));
 
   const handlePurchase = async (amount: number) => {
     if (!isConnected) {
@@ -180,38 +186,24 @@ export function Marketplace() {
   };
 
   return (
-    <div className="container mx-auto py-8 text-white">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold font-['Clash Display']">Hash Power Marketplace</h1>
-        <Button
-          type="primary"
-          onClick={() => setShowCreateListing(!showCreateListing)}
-        >
-          {showCreateListing ? 'View Listings' : 'Create Listing'}
-        </Button>
-      </div>
-
+    <div>
       {!isConnected && (
         <Alert
           message="Wallet Not Connected"
           description="Please connect your wallet to interact with the marketplace."
           type="warning"
           showIcon
-          className="mb-8"
+          className="mb-8 bg-[#1C2128] border-[#30363D]"
         />
       )}
 
-      {showCreateListing ? (
-        <CreateListing />
-      ) : (
-        <ListingGrid
-          listings={listings}
-          onPurchase={(listing) => {
-            setSelectedListing(listing);
-            setShowPurchaseModal(true);
-          }}
-        />
-      )}
+      <ListingGrid
+        listings={listings}
+        onPurchase={(listing) => {
+          setSelectedListing(listing);
+          setShowPurchaseModal(true);
+        }}
+      />
 
       <PurchaseModal
         listing={selectedListing}
