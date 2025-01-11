@@ -2,7 +2,6 @@ import React from 'react';
 import { Modal, InputNumber, Button, Form, Alert } from 'antd';
 import { toast } from 'react-hot-toast';
 import { useWallet } from '../../contexts/WalletContext';
-import { CreateListing } from './CreateListing';
 import { ListingGrid } from './ListingGrid';
 
 interface Listing {
@@ -13,6 +12,8 @@ interface Listing {
   minPurchase: number;
   maxPurchase: number;
   sellerAddress: string;
+  sellerRating: number;
+  completedSales: number;
 }
 
 interface PurchaseModalProps {
@@ -39,6 +40,8 @@ function generateMockListings(count: number): Listing[] {
       minPurchase: Math.max(1, Math.floor(hashPower * 0.05)), // 5% of total
       maxPurchase: Math.floor(hashPower * 0.8), // 80% of total
       sellerAddress: `0x${Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+      sellerRating: Number((Math.random() * 2 + 3).toFixed(1)), // 3.0-5.0 rating
+      completedSales: Math.floor(Math.random() * 500), // 0-500 sales
     });
   }
 
@@ -46,10 +49,16 @@ function generateMockListings(count: number): Listing[] {
 }
 
 function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalProps) {
+  const { isConnected } = useWallet();
   const [form] = Form.useForm();
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet to complete the purchase');
+      return;
+    }
+
     try {
       const values = await form.validateFields();
       setLoading(true);
@@ -65,7 +74,7 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
 
   return (
     <Modal
-      title="Purchase Hash Power"
+      title={<span className="font-['Clash Display']">Purchase Hash Power</span>}
       open={visible}
       onCancel={onClose}
       className="dark-theme-modal"
@@ -95,24 +104,35 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
           onClick={handleSubmit}
           className="bg-green-500 hover:bg-green-600"
         >
-          Confirm Purchase
+          {isConnected ? 'Confirm Purchase' : 'Connect Wallet to Purchase'}
         </Button>,
       ]}
     >
       {listing && (
         <div className="space-y-4">
-          <div className="bg-[#0D1117] p-4 rounded-lg border border-[#30363D]">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="text-gray-400">Algorithm:</div>
-              <div className="font-medium">{listing.algorithm}</div>
-              <div className="text-gray-400">Price per TH/s:</div>
-              <div className="font-medium">${listing.pricePerTH.toFixed(2)}</div>
-              <div className="text-gray-400">Available Power:</div>
-              <div className="font-medium">{listing.hashPower} TH/s</div>
+          <div className="bg-[#0D1117] p-6 rounded-lg border border-[#30363D] space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-sm">Algorithm</span>
+              <span className="text-xl font-['Clash Display']">{listing.algorithm}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-sm">Price per TH/s</span>
+              <span className="text-xl font-['Clash Display']">${listing.pricePerTH.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-sm">Available Power</span>
+              <span className="text-xl font-['Clash Display']">{listing.hashPower} TH/s</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-sm">Seller Rating</span>
+              <span className="text-xl font-['Clash Display'] flex items-center gap-1">
+                <span className="text-yellow-400">★</span>
+                {listing.sellerRating} ({listing.completedSales} sales)
+              </span>
             </div>
           </div>
 
-          <Form form={form} layout="vertical">
+          <Form form={form} layout="vertical" className="[&_.ant-form-item-label>label]:!text-gray-400 [&_.ant-form-item-label>label]:!font-normal">
             <Form.Item
               name="amount"
               label="Purchase Amount (TH/s)"
@@ -139,21 +159,31 @@ function PurchaseModal({ listing, visible, onClose, onPurchase }: PurchaseModalP
                 max={Math.min(listing.maxPurchase, listing.hashPower)}
                 step={0.1}
                 style={{ width: '100%' }}
-                className="bg-[#1C2128] border-[#30363D]"
+                className="bg-[#1C2128] border-[#30363D] text-white [&_.ant-input-number-input]:text-white [&_.ant-input-number-handler-wrap]:bg-[#1C2128] [&_.ant-input-number-handler]:border-[#30363D] [&_.ant-input-number-handler:hover]:bg-[#30363D] [&_.ant-input-number]:!rounded-md"
               />
             </Form.Item>
           </Form>
 
           <Alert
-            message="Estimated Total"
+            message={<span className="text-gray-400 text-sm">Estimated Total</span>}
             description={
-              <div className="text-lg font-bold">
+              <div className="text-3xl font-bold font-['Clash Display'] mt-1">
                 ${((form.getFieldValue('amount') || 0) * listing.pricePerTH).toFixed(2)}
               </div>
             }
             type="info"
-            className="bg-[#1C2128] border-[#30363D]"
+            className="bg-[#1C2128] border-[#30363D] [&_.ant-alert-message]:!p-0 [&_.ant-alert-description]:!p-0 [&_.ant-alert-description]:mt-1"
           />
+
+          {!isConnected && (
+            <Alert
+              message={<span className="font-['Clash Display']">Wallet Connection Required</span>}
+              description={<span className="text-gray-400">Connect your wallet to complete the purchase using aiHash tokens.</span>}
+              type="warning"
+              showIcon
+              className="bg-[#1C2128] border-[#30363D] [&_.ant-alert-message]:!p-0 [&_.ant-alert-description]:!p-0"
+            />
+          )}
         </div>
       )}
     </Modal>
@@ -187,16 +217,6 @@ export function Marketplace() {
 
   return (
     <div>
-      {!isConnected && (
-        <Alert
-          message="Wallet Not Connected"
-          description="Please connect your wallet to interact with the marketplace."
-          type="warning"
-          showIcon
-          className="mb-8 bg-[#1C2128] border-[#30363D]"
-        />
-      )}
-
       <ListingGrid
         listings={listings}
         onPurchase={(listing) => {

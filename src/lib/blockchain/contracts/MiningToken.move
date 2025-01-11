@@ -72,6 +72,28 @@ module aiHash::mining_token {
         transfer::transfer(token, tx_context::sender(ctx));
     }
 
+    // Transfer ownership of a mining token
+    public entry fun transfer_token(
+        token: &mut MiningToken,
+        new_owner: address,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == token.owner, ENotAuthorized);
+        token.owner = new_owner;
+        transfer::transfer(token, new_owner);
+    }
+
+    // Burn a mining token
+    public entry fun burn_token(
+        token: MiningToken,
+        treasury: &mut Treasury,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == token.owner, ENotAuthorized);
+        treasury.total_shares -= token.shares;
+        object::delete(token);
+    }
+
     // Distribute mining rewards
     public entry fun distribute_rewards(
         treasury: &mut Treasury,

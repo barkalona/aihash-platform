@@ -71,7 +71,7 @@ export function PurchaseModal({ listing, onClose, onSuccess }: PurchaseModalProp
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Purchase Hash Power</h2>
+          <h2 className="text-xl font-bold font-display text-white">Purchase Hash Power</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
@@ -143,7 +143,7 @@ export function PurchaseModal({ listing, onClose, onSuccess }: PurchaseModalProp
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-background py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="w-full bg-primary text-background py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 font-sans"
           >
             {loading ? 'Processing...' : 'Purchase Hash Power'}
           </button>
